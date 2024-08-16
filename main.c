@@ -52,7 +52,7 @@ SPI_HandleTypeDef hspi1;
 /* USER CODE BEGIN PV */
 int matrizInicial[8][8];
 int matrizInvisivel[8][8];
-int bombas = 8, unidade = 8, dezena = 0, clicou=0, x=0, y=0, i=0, j=0, posicaoX=0, posicaoY=0, resto=64;
+int bombas = 8, unidade = 8, dezena = 0, clicou=0, x=0, y=0, i=0, j=0, posicaoX=0, posicaoY=0, resto=64, vizinha=0, sorteioBombas=0;
 
 /* USER CODE END PV */
 
@@ -70,6 +70,7 @@ void Controles(void);
 void Jogo(void);
 void atualizarCursor(void);
 void unidaDezena (void);
+void bombaVizinha(void);
 
 /* USER CODE END PFP */
 
@@ -118,8 +119,6 @@ int main(void)
   {
 
 	 Menu();
-
-	  atualizarCursor();
 
 
     /* USER CODE END WHILE */
@@ -275,7 +274,8 @@ void Menu(void) {
 	    	    	}
 	    	    	switch (escolha) {
 	    	    		case 1:
-	    	    	    IniciarJogo();
+	    	    		IniciarJogo();
+	    	    	    Jogo();
 	    	    		break;
 
 	    	    		case 2:
@@ -292,25 +292,6 @@ void Menu(void) {
 
 void IniciarJogo(void) {
 
-	for (i=0; i<8; i++) {
-			for (int j=0; j<8; j++) {
-				matrizInicial[i][j] = 0;
-				matrizInvisivel[i][j] = 0;
-			}
-		}
-
-		srand(time(NULL));
-
-		int bombasColocadas = 0;
-		while (bombasColocadas < bombas) {
-			int x = rand () % 8;
-			int y = rand () % 8;
-
-			if (matrizInvisivel[x][y] == 0) {
-				matrizInvisivel[x][y] = 1;
-				bombasColocadas++;
-			}
-		}
 	 ST7789_Fill_Color(BLACK);
 
 			  x=50;
@@ -323,6 +304,8 @@ void IniciarJogo(void) {
 				  x=0;
 
 			  for(int j=0;j<8;j++) {
+
+				  matrizInicial[i][j] = 0;
 
 				  if (i==0 && j==0) {
 					  ST7789_WriteChar(x, y, 'X', Font_16x26, RED, BLACK);
@@ -343,7 +326,6 @@ void IniciarJogo(void) {
 		  }
 
 			  x=0, y=32;
-			  Jogo();
 		  }
 
 void bombasRestantes(void) {
@@ -482,11 +464,93 @@ void Jogo(void) {
 		 }
 	}
 
-void atualizarCursor(void) {
+void bombaVizinha(void) {
 
-		if(BOTAO12==0  && bombas != 0){
+	vizinha = 0;
 
-			if(matrizInicial[posicaoX][posicaoY] != 2) {
+	for(int i=0; i<8; i++) {
+
+		for(int j=0; j<8; j++) {
+
+			if(i == posicaoX && j == posicaoY) {
+
+				if(matrizInvisivel[i-1][j-1] == 1 && i-1>=0 && j-1>=0){
+
+					vizinha++;
+
+				} if(matrizInvisivel[i-1][j] == 1 && i-1>=0){
+
+					vizinha++;
+
+				} if(matrizInvisivel[i-1][j+1] == 1 && i-1>=0 && j+1<8){
+
+					vizinha++;
+
+				} if(matrizInvisivel[i][j-1] == 1 && j-1>=0){
+
+					vizinha++;
+
+				} if(matrizInvisivel[i][j+1] == 1 && j+1<8){
+
+					vizinha++;
+
+				} if(matrizInvisivel[i+1][j-1] == 1 && i<8 && j-1>=0){
+
+					vizinha++;
+
+				} if(matrizInvisivel[i+1][j] == 1 && i<8){
+
+					vizinha++;
+
+				} if(matrizInvisivel[i+1][j+1] == 1 && i<8 && j+1<8){
+
+					vizinha++;
+
+				}
+
+				ST7789_WriteChar(x, y, vizinha + '0', Font_16x26, BLUE, BLACK);
+
+			}
+
+		}
+	}
+
+}
+
+	void atualizarCursor(void) {
+
+		if(sorteioBombas == 1) {
+
+			for (i=0; i<8; i++) {
+						for (int j=0; j<8; j++) {
+
+							matrizInvisivel[i][j] = 0;
+
+						}
+					}
+
+					srand(time(NULL));
+
+					int bombasColocadas = 0;
+
+					while (bombasColocadas < bombas) {
+						int x = rand () % 8;
+						int y = rand () % 8;
+
+						if (matrizInvisivel[x][y] == 0) {
+							matrizInvisivel[x][y] = 1;
+							bombasColocadas++;
+						}
+					}
+
+					bombaVizinha();
+					sorteioBombas++;
+
+		}
+
+		if(BOTAO12==0){
+
+			if(matrizInicial[posicaoX][posicaoY] != 2 && bombas >= 1) {
 
 				matrizInicial[posicaoX][posicaoY] = 2;
 				unidade--;
@@ -517,25 +581,29 @@ void atualizarCursor(void) {
 
 	if(BOTAO10==0){
 
-				if(matrizInvisivel[posicaoX][posicaoY] == 1){
-				ST7789_Fill_Color(LBBLUE);
-				ST7789_WriteString(40,70,"GAME OVER!", Font_16x26 , RED, LBBLUE);
-				HAL_Delay(1000);
-				ST7789_WriteString(40,200,"PA10 - Menu", Font_11x18 , WHITE, LBBLUE);
-				while (BOTAO10 == 1) {
-					ST7789_WriteString(75,125,"YOU LOSE!", Font_11x18 , RED, LBBLUE);
-				}
-				Menu();
+		sorteioBombas++;
 
-				} else {
+		if(matrizInvisivel[posicaoX][posicaoY] == 1){
+		sorteioBombas = 1;
+		ST7789_Fill_Color(LBBLUE);
+		ST7789_WriteString(40,70,"GAME OVER!", Font_16x26 , RED, LBBLUE);
+		HAL_Delay(1000);
+		ST7789_WriteString(40,200,"PA10 - Menu", Font_11x18 , WHITE, LBBLUE);
+		while (BOTAO10 == 1) {
+			ST7789_WriteString(75,125,"YOU LOSE!", Font_11x18 , RED, LBBLUE);
+		}
+		Menu();
 
-					ST7789_WriteChar(x, y, '-', Font_16x26, BLUE, BLACK);
-					matrizInicial[posicaoX][posicaoY] = 3;
-					resto--;
+		} else {
 
-				}
+			ST7789_WriteChar(x, y, '-', Font_16x26, BLUE, BLACK);
+			bombaVizinha();
+			matrizInicial[posicaoX][posicaoY] = 3;
+			resto--;
 
-				//matrizInicial[i][j] = 'b';
+		}
+
+		//matrizInicial[i][j] = 'b';
 			}
 
 		if(BOTAO9 == 0) {
